@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 )
@@ -90,7 +91,21 @@ func main() {
 		}
 	}
 
-	// Create directory
-	//
+	// Initialize go mod
+	cmd := exec.Command("go", "mod", "init", modulePath)
+	cmd.Dir = projectName
+	if err := cmd.Run(); err != nil {
+		fmt.Printf("Failed to run go mod init: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Initialize git
+	gitCmd := exec.Command("git", "init")
+	gitCmd.Dir = projectName
+	if err := gitCmd.Run(); err != nil {
+		fmt.Printf("Failed to run git init: %v", err)
+		os.Exit(1)
+	}
+
 	// Generate boilerplate files
 }

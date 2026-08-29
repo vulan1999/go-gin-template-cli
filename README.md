@@ -2,7 +2,6 @@
 
 ## Folder Structure Generate
 ```text
-
 project-name/
 ├── cmd/
 │   └── server/
@@ -17,9 +16,6 @@ project-name/
 ```
 ```
 
-
-```
-```
 ```
 ```
 ```
