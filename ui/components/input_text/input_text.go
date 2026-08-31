@@ -16,6 +16,7 @@ type TextInputModel struct {
 	Title     string
 	Required  bool
 	Error     error
+	Done      bool
 	Quitting  bool
 }
 
@@ -48,8 +49,8 @@ func (m TextInputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.Error = errors.New("input cannot be empty. Please enter a value")
 				return m, nil
 			}
-			m.Quitting = true
-			return m, tea.Quit
+			m.Done = true
+			return m, nil
 		case tea.KeyCtrlC, tea.KeyEsc:
 			m.Quitting = true
 			return m, tea.Quit
@@ -77,8 +78,6 @@ func (m TextInputModel) View() string {
 	if m.Error != nil {
 		elements = append(elements, errorStyle.Render("\n"+m.Error.Error()))
 	}
-
-	elements = append(elements, "\n(press esc to quit)")
 
 	return lipgloss.JoinVertical(
 		lipgloss.Top,
