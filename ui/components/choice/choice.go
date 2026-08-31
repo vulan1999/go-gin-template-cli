@@ -12,6 +12,7 @@ type ChoicesModel struct {
 	Title    string
 	Cursor   int
 	Choice   int
+	Done     bool
 	Quitting bool
 }
 
@@ -44,8 +45,8 @@ func (m ChoicesModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			m.Choice = m.Cursor
-			m.Quitting = true
-			return m, tea.Quit
+			m.Done = true
+			return m, nil
 		// press ctrl + c or esc to quit
 		case "esc", "ctrl+c":
 			m.Quitting = true
@@ -69,7 +70,6 @@ func (m ChoicesModel) View() string {
 		s.WriteString(choice)
 		s.WriteString("\n")
 	}
-	s.WriteString("\n(press esc to quit)\n")
 
 	return s.String()
 }
