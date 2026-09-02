@@ -30,8 +30,8 @@ func TestTextInputValidation(t *testing.T) {
 	updated, _ = res.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	res = updated.(TextInputModel)
 
-	if !res.Quitting || res.Value() != "Test" {
-		t.Error("Expected Quitting is true or project name is Test")
+	if !res.Done || res.Value() != "Test" {
+		t.Errorf("Expected Done is true and project name is Test, got Done=%v, Value=%s", res.Done, res.Value())
 	}
 
 	// For non-required input case
@@ -39,7 +39,7 @@ func TestTextInputValidation(t *testing.T) {
 
 	updatedNonRequired, _ := mNonRequired.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	resNonRequired := updatedNonRequired.(TextInputModel)
-	if resNonRequired.Error != nil || !resNonRequired.Quitting {
-		t.Errorf("Expected got no Error, got %v", resNonRequired.Error)
+	if resNonRequired.Error != nil || !resNonRequired.Done {
+		t.Errorf("Expected got no Error and Done=true, got Error=%v, Done=%v", resNonRequired.Error, resNonRequired.Done)
 	}
 }

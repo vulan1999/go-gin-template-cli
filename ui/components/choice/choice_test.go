@@ -113,16 +113,13 @@ func TestUpdate_NavigationAndSelection(t *testing.T) {
 	}
 
 	// Select with "enter"
-	newModel, cmd := cm.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	newModel, _ = cm.Update(tea.KeyMsg{Type: tea.KeyEnter})
 	cm = newModel.(ChoicesModel)
-	if !cm.Quitting {
-		t.Errorf("expected Quitting to be true on enter")
+	if !cm.Done {
+		t.Errorf("expected Done to be true on enter")
 	}
 	if cm.Choice != 0 {
 		t.Errorf("expected Choice to be 0, got %d", cm.Choice)
-	}
-	if cmd == nil {
-		t.Fatalf("expected tea.Quit cmd, got nil")
 	}
 }
 
@@ -141,8 +138,5 @@ func TestView(t *testing.T) {
 	}
 	if !strings.Contains(view, "( ) Beta") {
 		t.Errorf("expected view to indicate unselected Beta, got:\n%s", view)
-	}
-	if !strings.Contains(view, "(press esc to quit)") {
-		t.Errorf("expected view to contain exit instructions, got:\n%s", view)
 	}
 }
