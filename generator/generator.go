@@ -1,11 +1,20 @@
 package generator
 
 import (
+	"embed"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"text/template"
 )
+
+//go:embed assets/*
+var templateFiles embed.FS
+
+type templateData struct {
+	ModulePath string
+}
 
 // CreateDirectories creates the initial folder structure for the Gin project.
 func CreateDirectories(projectName string) error {
@@ -53,17 +62,39 @@ func InstallDependencies(projectName string) error {
 // CreateTemplateFiles writes the boilerplate templates to the project directory.
 func CreateTemplateFiles(projectName, modulePath string) error {
 	files := map[string]string{
-		filepath.Join(projectName, "cmd", "api", "main.go"):              getMainFileTemplate(modulePath),
-		filepath.Join(projectName, "internal", "routes", "example.go"):   getRouteExampleTemplate(modulePath),
-		filepath.Join(projectName, "internal", "handlers", "example.go"): getHandlerExampleTemplate(),
-		filepath.Join(projectName, "config", "enviroment.go"):            getConfigFileTemplate(),
-		filepath.Join(projectName, "Makefile"):                           getMakefileTemplate(),
+		filepath.Join(projectName, "cmd", "api", "main.go"):              "assets/main.tmpl",
+		filepath.Join(projectName, "internal", "routes", "example.go"):   "assets/routes.tmpl",
+		filepath.Join(projectName, "internal", "handlers", "example.go"): "assets/handler.tmpl",
+		filepath.Join(projectName, "config", "enviroment.go"):            "assets/config.tmpl",
 	}
 
-	for filePath, content := range files {
-		if err := os.WriteFile(filePath, []byte(content), 0644); err != nil {
-			return fmt.Errorf("cannot write file %s: %w", filePath, err)
+	data := templateData{
+		ModulePath: modulePath,
+	}
+
+	for outputPath, templatePath := range files {
+		if err := renderFromTemplate(outputPath, templatePath, data); err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+// renderFromTemplate write files base on tmpl on assets forlder
+func renderFromTemplate(outputPath, templatePath string, data templateData) error {
+	tmpl, err := template.ParseFS(templateFiles, templatePath)
+	if err != nil {
+		return fmt.Errorf("cannot parse template %s: %w", templatePath, err)
+	}
+
+	file, err := os.Create(outputPath)
+	if err != nil {
+		return fmt.Errorf("cannot create file %s: %w", outputPath, err)
+	}
+	defer file.Close()
+
+	if err := tmpl.Execute(file, data); err != nil {
+		return fmt.Errorf("cannot render data to template %s: %w", templatePath, err)
 	}
 	return nil
 }

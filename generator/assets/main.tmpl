@@ -1,0 +1,17 @@
+package main
+
+import (
+	"github.com/gin-gonic/gin"
+	"{{.ModulePath}}/config"
+	"{{.ModulePath}}/internal/routes"
+)
+
+func init() {
+	config.LoadEnv()
+}
+
+func main() {
+	app := gin.Default()
+	routes.ExampleRoute(app)
+	app.Run(":8080")
+}
