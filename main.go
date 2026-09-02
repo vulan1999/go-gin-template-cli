@@ -4,7 +4,6 @@ import (
 	"log"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/vulan1999/go-gin-template-cli/generator"
 	"github.com/vulan1999/go-gin-template-cli/ui"
 )
 
@@ -17,13 +16,12 @@ func main() {
 	}
 
 	finalWizard, ok := model.(ui.WizardModel)
-
 	if !ok || finalWizard.Cancelled {
 		log.Println("Operation Cancelled")
 		return
 	}
 
-	if err := generator.GenerateGinProject(finalWizard.ProjectName, finalWizard.ModuleName); err != nil {
-		log.Fatal(err)
+	if finalWizard.Err != nil {
+		log.Fatalf("Project generation failed: %v", finalWizard.Err)
 	}
 }
