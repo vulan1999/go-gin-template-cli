@@ -1,0 +1,51 @@
+package config
+
+import (
+	"fmt"
+	"log"
+
+{{- if eq .Database "PostgreSQL" }}
+	"gorm.io/driver/postgres"
+{{- else if eq .Database "MySQL" }}
+	"gorm.io/driver/mysql"
+{{- else if eq .Database "SQLite" }}
+	"gorm.io/driver/sqlite"
+{{- end }}
+	"gorm.io/gorm"
+)
+
+var DB *gorm.DB
+
+func InitDB() (*gorm.DB, error) {
+{{- if eq .Database "PostgreSQL" }}
+	host := GetEnv("DB_HOST", "localhost")
+	port := GetEnv("DB_PORT", "5432")
+	user := GetEnv("DB_USER", "postgres")
+	password := GetEnv("DB_PASSWORD", "postgres")
+	dbname := GetEnv("DB_NAME", "postgres")
+	sslmode := GetEnv("DB_SSLMODE", "disable")
+
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, dbname, port, sslmode)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+{{- else if eq .Database "MySQL" }}
+	host := GetEnv("DB_HOST", "localhost")
+	port := GetEnv("DB_PORT", "3306")
+	user := GetEnv("DB_USER", "root")
+	password := GetEnv("DB_PASSWORD", "root")
+	dbname := GetEnv("DB_NAME", "app_db")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local", user, password, host, port, dbname)
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+{{- else if eq .Database "SQLite" }}
+	dbPath := GetEnv("DB_PATH", "app.db")
+	db, err := gorm.Open(sqlite.Open(dbPath), &gorm.Config{})
+{{- end }}
+	if err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		return nil, err
+	}
+
+	DB = db
+	log.Println("Database connection established successfully")
+	return DB, nil
+}

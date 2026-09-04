@@ -1,0 +1,58 @@
+package config
+
+import (
+	"database/sql"
+	"fmt"
+	"log"
+
+{{- if eq .Database "PostgreSQL" }}
+	_ "github.com/lib/pq"
+{{- else if eq .Database "MySQL" }}
+	_ "github.com/go-sql-driver/mysql"
+{{- else if eq .Database "SQLite" }}
+	_ "github.com/mattn/go-sqlite3"
+{{- end }}
+)
+
+var DB *sql.DB
+
+func InitDB() (*sql.DB, error) {
+{{- if eq .Database "PostgreSQL" }}
+	host := GetEnv("DB_HOST", "localhost")
+	port := GetEnv("DB_PORT", "5432")
+	user := GetEnv("DB_USER", "postgres")
+	password := GetEnv("DB_PASSWORD", "postgres")
+	dbname := GetEnv("DB_NAME", "postgres")
+	sslmode := GetEnv("DB_SSLMODE", "disable")
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s", host, port, user, password, dbname, sslmode)
+	driverName := "postgres"
+{{- else if eq .Database "MySQL" }}
+	host := GetEnv("DB_HOST", "localhost")
+	port := GetEnv("DB_PORT", "3306")
+	user := GetEnv("DB_USER", "root")
+	password := GetEnv("DB_PASSWORD", "root")
+	dbname := GetEnv("DB_NAME", "app_db")
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, password, host, port, dbname)
+	driverName := "mysql"
+{{- else if eq .Database "SQLite" }}
+	dsn := GetEnv("DB_PATH", "app.db")
+	driverName := "sqlite3"
+{{- end }}
+
+	db, err := sql.Open(driverName, dsn)
+	if err != nil {
+		log.Printf("Failed to open database: %v", err)
+		return nil, err
+	}
+
+	if err := db.Ping(); err != nil {
+		log.Printf("Failed to connect to database: %v", err)
+		return nil, err
+	}
+
+	DB = db
+	log.Println("Database connection established successfully")
+	return DB, nil
+}
