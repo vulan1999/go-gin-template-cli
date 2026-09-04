@@ -1,6 +1,10 @@
 package main
 
 import (
+{{- if and .Database (ne .Database "None") }}
+	"log"
+
+{{- end }}
 	"github.com/gin-gonic/gin"
 	"{{.ModulePath}}/config"
 	"{{.ModulePath}}/internal/routes"
@@ -11,6 +15,11 @@ func init() {
 }
 
 func main() {
+{{- if and .Database (ne .Database "None") }}
+	if _, err := config.InitDB(); err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+{{- end }}
 	app := gin.Default()
 	routes.ExampleRoute(app)
 	app.Run(":8080")

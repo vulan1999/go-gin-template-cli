@@ -14,6 +14,8 @@ var templateFiles embed.FS
 
 type templateData struct {
 	ModulePath string
+	Database   string
+	Toolkit    string
 }
 
 // CreateDirectories creates the initial folder structure for the Gin project.
@@ -43,6 +45,15 @@ func InitGoModule(projectName, modulePath string) error {
 	return nil
 }
 
+func InitGitRepository(projectName string) error {
+	cmd := exec.Command("git", "init")
+	cmd.Dir = projectName
+	if out, err := cmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("cannot initialize git repository: %s (%w)", string(out), err)
+	}
+	return nil
+}
+
 // InstallDependencies installs gin and godotenv packages.
 func InstallDependencies(projectName string) error {
 	getGinCmd := exec.Command("go", "get", "github.com/gin-gonic/gin")
@@ -59,17 +70,20 @@ func InstallDependencies(projectName string) error {
 	return nil
 }
 
-// CreateTemplateFiles writes the boilerplate templates to the project directory.
-func CreateTemplateFiles(projectName, modulePath string) error {
+// CreateBaseTemplateFiles writes the boilerplate base templates to the project directory. (main, route, handle, config, env files)
+func CreateBaseTemplateFiles(projectName, modulePath, database, toolkit string) error {
 	files := map[string]string{
 		filepath.Join(projectName, "cmd", "api", "main.go"):              "assets/main.tmpl",
 		filepath.Join(projectName, "internal", "routes", "example.go"):   "assets/routes.tmpl",
 		filepath.Join(projectName, "internal", "handlers", "example.go"): "assets/handler.tmpl",
 		filepath.Join(projectName, "config", "enviroment.go"):            "assets/config.tmpl",
+		filepath.Join(projectName, ".env.example"):                       "assets/env.tmpl",
 	}
 
 	data := templateData{
 		ModulePath: modulePath,
+		Database:   database,
+		Toolkit:    toolkit,
 	}
 
 	for outputPath, templatePath := range files {
@@ -99,19 +113,81 @@ func renderFromTemplate(outputPath, templatePath string, data templateData) erro
 	return nil
 }
 
-// GenerateGinProject runs all generation steps sequentially.
-func GenerateGinProject(projectName string, modulePath string) error {
-	if err := CreateDirectories(projectName); err != nil {
-		return err
+// InstallDatabaseDriverAndToolkit installs database drivers and toolkit packages based on user selection.
+func InstallDatabaseDriverAndToolkit(projectName, database, toolkit string) error {
+	if database == "" || database == "None" {
+		return nil
 	}
-	if err := InitGoModule(projectName, modulePath); err != nil {
-		return err
+
+	var packages []string
+
+	switch toolkit {
+	case "GORM":
+		packages = append(packages, "gorm.io/gorm")
+		switch database {
+		case "PostgreSQL":
+			packages = append(packages, "gorm.io/driver/postgres")
+		case "MySQL":
+			packages = append(packages, "gorm.io/driver/mysql")
+		case "SQLite":
+			packages = append(packages, "gorm.io/driver/sqlite")
+		}
+	case "sqlx":
+		packages = append(packages, "github.com/jmoiron/sqlx")
+		switch database {
+		case "PostgreSQL":
+			packages = append(packages, "github.com/lib/pq")
+		case "MySQL":
+			packages = append(packages, "github.com/go-sql-driver/mysql")
+		case "SQLite":
+			packages = append(packages, "github.com/mattn/go-sqlite3")
+		}
+	case "database/sql":
+		switch database {
+		case "PostgreSQL":
+			packages = append(packages, "github.com/lib/pq")
+		case "MySQL":
+			packages = append(packages, "github.com/go-sql-driver/mysql")
+		case "SQLite":
+			packages = append(packages, "github.com/mattn/go-sqlite3")
+		}
 	}
-	if err := InstallDependencies(projectName); err != nil {
-		return err
+
+	for _, pkg := range packages {
+		cmd := exec.Command("go", "get", pkg)
+		cmd.Dir = projectName
+		if out, err := cmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("cannot get %s: %s (%w)", pkg, string(out), err)
+		}
 	}
-	if err := CreateTemplateFiles(projectName, modulePath); err != nil {
-		return err
-	}
+
 	return nil
+}
+
+// CreateDatabaseTemplateFiles generates database configuration and boilerplate files.
+func CreateDatabaseTemplateFiles(projectName, modulePath, database, toolkit string) error {
+	if database == "" || database == "None" {
+		return nil
+	}
+	// TODO: generate repository file, model and service files
+	var templatePath string
+	switch toolkit {
+	case "GORM":
+		templatePath = "assets/database_gorm.tmpl"
+	case "sqlx":
+		templatePath = "assets/database_sqlx.tmpl"
+	case "database/sql":
+		templatePath = "assets/database_sql.tmpl"
+	default:
+		return fmt.Errorf("unsupported toolkit: %s", toolkit)
+	}
+
+	data := templateData{
+		ModulePath: modulePath,
+		Database:   database,
+		Toolkit:    toolkit,
+	}
+
+	outputPath := filepath.Join(projectName, "config", "database.go")
+	return renderFromTemplate(outputPath, templatePath, data)
 }
