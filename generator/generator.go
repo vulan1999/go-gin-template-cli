@@ -24,6 +24,9 @@ func CreateDirectories(projectName string) error {
 		filepath.Join(projectName, "cmd", "api"),
 		filepath.Join(projectName, "internal", "routes"),
 		filepath.Join(projectName, "internal", "handlers"),
+		filepath.Join(projectName, "internal", "models"),
+		filepath.Join(projectName, "internal", "repositories"),
+		filepath.Join(projectName, "internal", "services"),
 		filepath.Join(projectName, "config"),
 	}
 
@@ -101,6 +104,10 @@ func renderFromTemplate(outputPath, templatePath string, data templateData) erro
 		return fmt.Errorf("cannot parse template %s: %w", templatePath, err)
 	}
 
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("cannot create parent directory for %s: %w", outputPath, err)
+	}
+
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("cannot create file %s: %w", outputPath, err)
@@ -169,15 +176,20 @@ func CreateDatabaseTemplateFiles(projectName, modulePath, database, toolkit stri
 	if database == "" || database == "None" {
 		return nil
 	}
-	// TODO: generate repository file, model and service files
-	var templatePath string
+
+	var dbTemplatePath string
+	var repoTemplatePath string
+
 	switch toolkit {
 	case "GORM":
-		templatePath = "assets/database_gorm.tmpl"
+		dbTemplatePath = "assets/database_gorm.tmpl"
+		repoTemplatePath = "assets/repository_gorm.tmpl"
 	case "sqlx":
-		templatePath = "assets/database_sqlx.tmpl"
+		dbTemplatePath = "assets/database_sqlx.tmpl"
+		repoTemplatePath = "assets/repository_sqlx.tmpl"
 	case "database/sql":
-		templatePath = "assets/database_sql.tmpl"
+		dbTemplatePath = "assets/database_sql.tmpl"
+		repoTemplatePath = "assets/repository_sql.tmpl"
 	default:
 		return fmt.Errorf("unsupported toolkit: %s", toolkit)
 	}
@@ -188,6 +200,19 @@ func CreateDatabaseTemplateFiles(projectName, modulePath, database, toolkit stri
 		Toolkit:    toolkit,
 	}
 
-	outputPath := filepath.Join(projectName, "config", "database.go")
-	return renderFromTemplate(outputPath, templatePath, data)
+	files := map[string]string{
+		filepath.Join(projectName, "config", "database.go"):                  dbTemplatePath,
+		filepath.Join(projectName, "internal", "models", "example.go"):       "assets/model.tmpl",
+		filepath.Join(projectName, "internal", "repositories", "example.go"): repoTemplatePath,
+		filepath.Join(projectName, "internal", "services", "example.go"):     "assets/service.tmpl",
+		filepath.Join(projectName, "Dockerfile"):                             "assets/dockerfile.tmpl",
+		filepath.Join(projectName, "docker-compose.yml"):                     "assets/docker_compose.tmpl",
+	}
+
+	for outputPath, templatePath := range files {
+		if err := renderFromTemplate(outputPath, templatePath, data); err != nil {
+			return err
+		}
+	}
+	return nil
 }

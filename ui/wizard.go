@@ -29,6 +29,7 @@ type WizardModel struct {
 	databaseModel list.ListModel
 	toolkitModel  list.ListModel
 	spinnerModel  spinner.SpinnerModel
+	uiText        string
 	ProjectName   string
 	ModuleName    string
 	Database      string
@@ -147,6 +148,7 @@ func (m WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.projectModel.TextInput.Blur()
 			m.moduleModel = NewModuleChoice(m.ProjectName)
 			m.state = stateModuleChoice
+			m.uiText = fmt.Sprintf("Project Name: %s\n", m.ProjectName)
 			return m, m.moduleModel.Init()
 		}
 	case stateModuleChoice:
@@ -160,6 +162,7 @@ func (m WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.ModuleName = m.moduleModel.ModulePath
 			m.databaseModel = defaultDatabaseList()
 			m.state = stateDatabaseChoice
+			m.uiText += fmt.Sprintf("Module Name: %s\n", m.ModuleName)
 			return m, m.databaseModel.Init()
 		}
 	case stateDatabaseChoice:
@@ -171,6 +174,7 @@ func (m WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.databaseModel.Done {
 			m.Database = m.databaseModel.Value()
+			m.uiText += fmt.Sprintf("Database: %s\n", m.Database)
 			// if choose None => process to generating phase
 			// else => process to toolkit choosing phase
 			if m.Database == "None" {
@@ -196,6 +200,7 @@ func (m WizardModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if m.toolkitModel.Done {
 			m.Toolkit = m.toolkitModel.Value()
+			m.uiText += fmt.Sprintf("Toolkit: %s\n", m.Toolkit)
 			m.state = stateGenerating
 
 			m.spinnerModel = spinner.CreateModel(
@@ -225,16 +230,13 @@ func (m WizardModel) View() string {
 	case stateProjectName:
 		return m.projectModel.View()
 	case stateModuleChoice:
-		return m.projectModel.View() + "\n\n" + m.moduleModel.View()
+		return m.uiText + "\n\n" + m.moduleModel.View()
 	case stateDatabaseChoice:
-		return m.projectModel.View() + "\n\n" + m.moduleModel.View() + "\n\n" + m.databaseModel.View()
+		return m.uiText + "\n\n" + m.databaseModel.View()
 	case stateToolkitChoice:
-		return m.projectModel.View() + "\n\n" + m.moduleModel.View() + "\n\n" + m.databaseModel.View() + "\n\n" + m.toolkitModel.View()
+		return m.uiText + "\n\n" + m.toolkitModel.View()
 	case stateGenerating, stateDone:
-		if m.Database == "None" {
-			return m.projectModel.View() + "\n\n" + m.moduleModel.View() + "\n\n" + m.databaseModel.View() + "\n\n" + m.spinnerModel.View()
-		}
-		return m.projectModel.View() + "\n\n" + m.moduleModel.View() + "\n\n" + m.databaseModel.View() + "\n\n" + m.toolkitModel.View() + "\n\n" + m.spinnerModel.View()
+		return m.uiText + "\n\n" + m.spinnerModel.View()
 	}
 	return ""
 }
