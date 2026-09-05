@@ -95,9 +95,9 @@ go-gin-template-cli/
 
 - [x] Database connection setup (driver + ORM choice, e.g. Postgres/MySQL/SQLite
       with GORM or `database/sql`)
-- [ ] Generated `internal/models` and `internal/repositories` layers
-- [ ] Optional Docker Compose file for local database
-- [ ] Service layer scaffolding (`internal/services`)
+- [x] Generated `internal/models` and `internal/repositories` layers
+- [x] Optional Docker Compose file for local database
+- [x] Service layer scaffolding (`internal/services`)
 
 ## 9. Tech Stack
 

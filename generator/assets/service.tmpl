@@ -1,0 +1,112 @@
+package services
+
+import (
+	"context"
+	"time"
+
+	"{{.ModulePath}}/internal/models"
+	"{{.ModulePath}}/internal/repositories"
+)
+
+type ExampleService interface {
+	GetAll(ctx context.Context) ([]models.Example, error)
+{{- if eq .Toolkit "GORM" }}
+	GetByID(ctx context.Context, id uint) (*models.Example, error)
+	Create(ctx context.Context, name, description string) (*models.Example, error)
+	Update(ctx context.Context, id uint, name, description string) (*models.Example, error)
+	Delete(ctx context.Context, id uint) error
+{{- else }}
+	GetByID(ctx context.Context, id int64) (*models.Example, error)
+	Create(ctx context.Context, name, description string) (*models.Example, error)
+	Update(ctx context.Context, id int64, name, description string) (*models.Example, error)
+	Delete(ctx context.Context, id int64) error
+{{- end }}
+}
+
+type exampleService struct {
+	repo repositories.ExampleRepository
+}
+
+func NewExampleService(repo repositories.ExampleRepository) ExampleService {
+	return &exampleService{repo: repo}
+}
+
+func (s *exampleService) GetAll(ctx context.Context) ([]models.Example, error) {
+	return s.repo.FindAll(ctx)
+}
+
+{{- if eq .Toolkit "GORM" }}
+func (s *exampleService) GetByID(ctx context.Context, id uint) (*models.Example, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *exampleService) Create(ctx context.Context, name, description string) (*models.Example, error) {
+	now := time.Now()
+	example := &models.Example{
+		Name:        name,
+		Description: description,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	if err := s.repo.Create(ctx, example); err != nil {
+		return nil, err
+	}
+	return example, nil
+}
+
+func (s *exampleService) Update(ctx context.Context, id uint, name, description string) (*models.Example, error) {
+	example, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	example.Name = name
+	example.Description = description
+	example.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(ctx, example); err != nil {
+		return nil, err
+	}
+	return example, nil
+}
+
+func (s *exampleService) Delete(ctx context.Context, id uint) error {
+	return s.repo.Delete(ctx, id)
+}
+{{- else }}
+func (s *exampleService) GetByID(ctx context.Context, id int64) (*models.Example, error) {
+	return s.repo.FindByID(ctx, id)
+}
+
+func (s *exampleService) Create(ctx context.Context, name, description string) (*models.Example, error) {
+	now := time.Now()
+	example := &models.Example{
+		Name:        name,
+		Description: description,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+	if err := s.repo.Create(ctx, example); err != nil {
+		return nil, err
+	}
+	return example, nil
+}
+
+func (s *exampleService) Update(ctx context.Context, id int64, name, description string) (*models.Example, error) {
+	example, err := s.repo.FindByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+	example.Name = name
+	example.Description = description
+	example.UpdatedAt = time.Now()
+
+	if err := s.repo.Update(ctx, example); err != nil {
+		return nil, err
+	}
+	return example, nil
+}
+
+func (s *exampleService) Delete(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
+}
+{{- end }}

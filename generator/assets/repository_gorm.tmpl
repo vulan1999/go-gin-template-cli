@@ -1,0 +1,52 @@
+package repositories
+
+import (
+	"context"
+
+	"{{.ModulePath}}/internal/models"
+	"gorm.io/gorm"
+)
+
+type ExampleRepository interface {
+	FindAll(ctx context.Context) ([]models.Example, error)
+	FindByID(ctx context.Context, id uint) (*models.Example, error)
+	Create(ctx context.Context, example *models.Example) error
+	Update(ctx context.Context, example *models.Example) error
+	Delete(ctx context.Context, id uint) error
+}
+
+type exampleRepository struct {
+	db *gorm.DB
+}
+
+func NewExampleRepository(db *gorm.DB) ExampleRepository {
+	return &exampleRepository{db: db}
+}
+
+func (r *exampleRepository) FindAll(ctx context.Context) ([]models.Example, error) {
+	var examples []models.Example
+	if err := r.db.WithContext(ctx).Find(&examples).Error; err != nil {
+		return nil, err
+	}
+	return examples, nil
+}
+
+func (r *exampleRepository) FindByID(ctx context.Context, id uint) (*models.Example, error) {
+	var example models.Example
+	if err := r.db.WithContext(ctx).First(&example, id).Error; err != nil {
+		return nil, err
+	}
+	return &example, nil
+}
+
+func (r *exampleRepository) Create(ctx context.Context, example *models.Example) error {
+	return r.db.WithContext(ctx).Create(example).Error
+}
+
+func (r *exampleRepository) Update(ctx context.Context, example *models.Example) error {
+	return r.db.WithContext(ctx).Save(example).Error
+}
+
+func (r *exampleRepository) Delete(ctx context.Context, id uint) error {
+	return r.db.WithContext(ctx).Delete(&models.Example{}, id).Error
+}

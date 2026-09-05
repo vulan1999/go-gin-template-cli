@@ -1,0 +1,96 @@
+package repositories
+
+import (
+	"context"
+	"database/sql"
+
+	"{{.ModulePath}}/internal/models"
+)
+
+type ExampleRepository interface {
+	FindAll(ctx context.Context) ([]models.Example, error)
+	FindByID(ctx context.Context, id int64) (*models.Example, error)
+	Create(ctx context.Context, example *models.Example) error
+	Update(ctx context.Context, example *models.Example) error
+	Delete(ctx context.Context, id int64) error
+}
+
+type exampleRepository struct {
+	db *sql.DB
+}
+
+func NewExampleRepository(db *sql.DB) ExampleRepository {
+	return &exampleRepository{db: db}
+}
+
+func (r *exampleRepository) FindAll(ctx context.Context) ([]models.Example, error) {
+	query := "SELECT id, name, description, created_at, updated_at FROM examples"
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var examples []models.Example
+	for rows.Next() {
+		var item models.Example
+		if err := rows.Scan(&item.ID, &item.Name, &item.Description, &item.CreatedAt, &item.UpdatedAt); err != nil {
+			return nil, err
+		}
+		examples = append(examples, item)
+	}
+	return examples, rows.Err()
+}
+
+func (r *exampleRepository) FindByID(ctx context.Context, id int64) (*models.Example, error) {
+{{- if eq .Database "PostgreSQL" }}
+	query := "SELECT id, name, description, created_at, updated_at FROM examples WHERE id = $1"
+{{- else }}
+	query := "SELECT id, name, description, created_at, updated_at FROM examples WHERE id = ?"
+{{- end }}
+	var item models.Example
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&item.ID, &item.Name, &item.Description, &item.CreatedAt, &item.UpdatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return &item, nil
+}
+
+func (r *exampleRepository) Create(ctx context.Context, example *models.Example) error {
+{{- if eq .Database "PostgreSQL" }}
+	query := "INSERT INTO examples (name, description, created_at, updated_at) VALUES ($1, $2, $3, $4) RETURNING id"
+	return r.db.QueryRowContext(ctx, query, example.Name, example.Description, example.CreatedAt, example.UpdatedAt).Scan(&example.ID)
+{{- else }}
+	query := "INSERT INTO examples (name, description, created_at, updated_at) VALUES (?, ?, ?, ?)"
+	res, err := r.db.ExecContext(ctx, query, example.Name, example.Description, example.CreatedAt, example.UpdatedAt)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	if err == nil {
+		example.ID = id
+	}
+	return nil
+{{- end }}
+}
+
+func (r *exampleRepository) Update(ctx context.Context, example *models.Example) error {
+{{- if eq .Database "PostgreSQL" }}
+	query := "UPDATE examples SET name = $1, description = $2, updated_at = $3 WHERE id = $4"
+	_, err := r.db.ExecContext(ctx, query, example.Name, example.Description, example.UpdatedAt, example.ID)
+{{- else }}
+	query := "UPDATE examples SET name = ?, description = ?, updated_at = ? WHERE id = ?"
+	_, err := r.db.ExecContext(ctx, query, example.Name, example.Description, example.UpdatedAt, example.ID)
+{{- end }}
+	return err
+}
+
+func (r *exampleRepository) Delete(ctx context.Context, id int64) error {
+{{- if eq .Database "PostgreSQL" }}
+	query := "DELETE FROM examples WHERE id = $1"
+{{- else }}
+	query := "DELETE FROM examples WHERE id = ?"
+{{- end }}
+	_, err := r.db.ExecContext(ctx, query, id)
+	return err
+}

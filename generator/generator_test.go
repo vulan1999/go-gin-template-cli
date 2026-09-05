@@ -209,6 +209,21 @@ func TestCreateDatabaseTemplateFiles(t *testing.T) {
 				t.Fatalf("CreateDatabaseTemplateFiles failed: %v", err)
 			}
 
+			expectedGeneratedFiles := []string{
+				filepath.Join(projectName, "config", "database.go"),
+				filepath.Join(projectName, "internal", "models", "example.go"),
+				filepath.Join(projectName, "internal", "repositories", "example.go"),
+				filepath.Join(projectName, "internal", "services", "example.go"),
+				filepath.Join(projectName, "Dockerfile"),
+				filepath.Join(projectName, "docker-compose.yml"),
+			}
+
+			for _, f := range expectedGeneratedFiles {
+				if _, err := os.Stat(f); os.IsNotExist(err) {
+					t.Errorf("expected generated file %s to exist", f)
+				}
+			}
+
 			dbFile := filepath.Join(projectName, "config", "database.go")
 			content, err := os.ReadFile(dbFile)
 			if err != nil {
@@ -220,6 +235,36 @@ func TestCreateDatabaseTemplateFiles(t *testing.T) {
 				if !strings.Contains(strContent, exp) {
 					t.Errorf("expected database.go to contain %q, but got:\n%s", exp, strContent)
 				}
+			}
+
+			// Verify service file
+			svcFile := filepath.Join(projectName, "internal", "services", "example.go")
+			svcContent, err := os.ReadFile(svcFile)
+			if err != nil {
+				t.Fatalf("failed to read example.go service: %v", err)
+			}
+			if !strings.Contains(string(svcContent), "ExampleService") {
+				t.Errorf("expected service to contain ExampleService")
+			}
+
+			// Verify repo file
+			repoFile := filepath.Join(projectName, "internal", "repositories", "example.go")
+			repoContent, err := os.ReadFile(repoFile)
+			if err != nil {
+				t.Fatalf("failed to read example.go repository: %v", err)
+			}
+			if !strings.Contains(string(repoContent), "ExampleRepository") {
+				t.Errorf("expected repository to contain ExampleRepository")
+			}
+
+			// Verify docker-compose.yml
+			dcFile := filepath.Join(projectName, "docker-compose.yml")
+			dcContent, err := os.ReadFile(dcFile)
+			if err != nil {
+				t.Fatalf("failed to read docker-compose.yml: %v", err)
+			}
+			if !strings.Contains(string(dcContent), "services:") {
+				t.Errorf("expected docker-compose.yml to contain services:")
 			}
 		})
 	}
