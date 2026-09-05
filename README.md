@@ -1,118 +1,114 @@
 # Go Gin Template Generate CLI
 
-## 1. What This Project Is
+A CLI tool that auto-generates a [Gin](https://github.com/gin-gonic/gin) web
+API project for you. It uses [bubbletea](https://github.com/charmbracelet/bubbletea)
+for an interactive terminal UI, so you just answer a few prompts and get a
+ready-to-run Gin project — no manual folder setup, no hand-written boilerplate.
+ 
+## Requirements
+ 
+- [Go](https://go.dev/dl/) **1.24.2** or later
+- Git (only needed if you plan to push the generated project to GitHub/GitLab)
+- Internet access when generating a project (the CLI runs `go get` to install
+  Gin and other dependencies into your new project)
+## Installation
+ 
+### Option 1: Install with `go install` (recommended)
+ 
+```bash
+go install github.com/vulan1999/go-gin-template-cli@latest
+```
+ 
+This places a `go-gin-template-cli` binary in your `$GOPATH/bin` (or
+`$GOBIN`). Make sure that directory is on your `PATH`, then run it from
+anywhere:
+ 
+```bash
+go-gin-template-cli
+```
+ 
+### Option 2: Clone and build locally
+ 
+```bash
+git clone https://github.com/vulan1999/go-gin-template-cli.git
+cd go-gin-template-cli
+make build
+```
+ 
+This produces a binary at `bin/go-gin-template-cli`. Run it with:
+ 
+```bash
+./bin/go-gin-template-cli
+```
+ 
+### Option 3: Run without building (for trying it out or development)
+ 
+```bash
+git clone https://github.com/vulan1999/go-gin-template-cli.git
+cd go-gin-template-cli
+make run
+```
+ 
+## Usage
+ 
+Run the CLI, then follow the interactive prompts:
+ 
+```bash
+go-gin-template-cli
+```
+ 
+**Step 1 — Project name**
+Enter the name of your project. This becomes the output folder name.
+ 
+**Step 2 — Module naming convention**
+Choose how your Go module path should be built:
+ 
+| Option | Result | Example |
+|---|---|---|
+| **Barebone** | Local-only module, no remote prefix | `myproject` |
+| **Github** | Prefixed with your GitHub username/org | `github.com/username/myproject` |
+| **Gitlab** | Prefixed with your GitLab host + namespace | `gitlab.com/username/myproject` |
+ 
+If you choose GitHub or GitLab, you'll be asked for your username/org (and,
+for GitLab, the host — press Enter to default to `gitlab.com`).
+ 
+**Step 3 — Generation**
+The CLI will automatically:
+1. Create the project directory structure
+2. Run `go mod init <your-module-path>`
+3. Install Gin and other required dependencies
+4. Generate starter files from templates
+You can cancel at any prompt with `Ctrl+C` or `Esc` — nothing is written
+until generation starts.
 
-A command-line tool that scaffolds a new [Gin](https://github.com/gin-gonic/gin)
-web API project in Go. Instead of manually creating folders, writing
-boilerplate handlers, and wiring up `go.mod`, a developer runs the CLI,
-answers a few interactive prompts, and gets a working project skeleton.
-
-The CLI's interactive prompts are built with
-[bubbletea](https://github.com/charmbracelet/bubbletea) (a terminal UI
-framework), and the actual file/folder generation logic is plain Go using
-`text/template` and embedded template files.
-
-## 2. Goals
-
-- Save developers the repetitive setup work of starting a new Gin API.
-- Enforce a consistent, opinionated project layout across projects.
-- Keep the generated code minimal and idiomatic — no hidden magic, easy to
-  read and extend by hand after generation.
-
-## 3. Non-Goals (for now)
-
-- This is not a full backend framework — it generates a *starting point*,
-  not a batteries-included framework the user imports as a dependency.
-- Not currently opinionated about deployment, CI/CD, or cloud provider.
-
-## 4. How It Works (User Flow)
-
-1. User runs the CLI binary.
-2. **Step 1 — Project name.** A text prompt asks for the project name
-   (used as the output folder name).
-3. **Step 2 — Module naming convention.** User picks one of:
-   - **Barebone** — module path = project name only (local-only module).
-   - **GitHub** — user enters a GitHub username/org; module path becomes
-     `github.com/<user>/<project>`.
-   - **GitLab** — user enters a GitLab host (defaults to `gitlab.com`) and a
-     username/group; module path becomes `<host>/<user>/<project>`.
-4. **Step 3 — Generation.** A spinner runs through these steps in order:
-   1. Create project directories
-   2. `go mod init <modulePath>`
-   3. `go get` Gin and godotenv
-   4. Render template files into the new project
-5. Done — user has a working Gin project on disk.
-
-## 5. Generated Project Structure
-
+## What You Get
+ 
+Once generation finishes, your new project looks like this:
+ 
 ```text
 <project-name>/
 ├── cmd/
 │   └── api/
-│       └── main.go            # Entry point
+│       └── main.go            # Entry point — starts the Gin server
 ├── config/
-│   └── enviroment.go          # Reads environment variables (godotenv)
+│   └── enviroment.go          # Loads environment variables (.env support via godotenv)
 ├── internal/
 │   ├── routes/
 │   │   └── example.go         # Route definitions
 │   └── handlers/
-│       └── example.go         # HTTP request/response handling
+│       └── example.go         # Request/response handling
 ├── go.mod
 └── go.sum
 ```
-
-> Note: `internal/models`, `internal/repositories`, and `internal/services`
-> are documented as intended structure but are **not yet generated** by the
-> CLI as of the current version — see Roadmap.
-
-## 6. Source Repo Structure
-
-```text
-go-gin-template-cli/
-├── main.go                    # CLI entry point
-├── generator/
-│   ├── generator.go           # Core generation logic (dirs, go mod, deps, templates)
-│   └── assets/                # .tmpl files embedded via go:embed
-├── ui/
-│   ├── wizard.go               # Top-level bubbletea flow (name -> module -> generate)
-│   ├── module_choice.go        # Module naming convention sub-flow
-│   └── components/             # Reusable TUI pieces (text input, choice list, spinner)
-├── Makefile
-├── go.mod / go.sum
-└── README.md
+ 
+To run your generated project:
+ 
+```bash
+cd <project-name>
+go run cmd/api/main.go
 ```
 
-## 7. Current Features (Implemented)
 
-- Interactive project name prompt
-- Module path selection: Barebone / GitHub / GitLab
-- Automatic `go mod init` with the chosen module path
-- Automatic install of `gin-gonic/gin` and `joho/godotenv`
-- Generated files: `cmd/api/main.go`, `internal/routes/example.go`,
-  `internal/handlers/example.go`, `config/enviroment.go`
-
-## 8. Roadmap / Not Yet Implemented
-
-- [x] Database connection setup (driver + ORM choice, e.g. Postgres/MySQL/SQLite
-      with GORM or `database/sql`)
-- [x] Generated `internal/models` and `internal/repositories` layers
-- [x] Optional Docker Compose file for local database
-- [x] Service layer scaffolding (`internal/services`)
-
-## 9. Tech Stack
-
-| Concern            | Tool/Library                          |
-|---------------------|----------------------------------------|
-| Language            | Go                                     |
-| Web framework (generated projects) | Gin (`gin-gonic/gin`)   |
-| Env var loading (generated projects) | godotenv (`joho/godotenv`) |
-| CLI terminal UI      | bubbletea (`charmbracelet/bubbletea`) |
-| Templating           | Go `text/template` + `embed`          |
-
-## 10. Glossary
-
-- **Module path** — the Go module identity (in `go.mod`), also used as the
-  import path prefix for the generated project.
-- **Barebone** — module naming mode with no remote host prefix.
-- **Template (.tmpl)** — a file in `generator/assets` rendered with
-  `templateData` (currently just `ModulePath`) to produce a real Go file.
+## License
+ 
+See [LICENSE](./LICENSE).
